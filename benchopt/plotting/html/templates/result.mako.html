@@ -60,7 +60,9 @@
   %endif
 
 
-<!-- Add selector to display only one plot -->
+<!-- Add selector to display only one plot.
+Var active is 0 for loglog plots and 1 for semilog-y
+-->
 <label for='dataset_selector'>Dataset</label>
 <select id='dataset_selector' onchange="showMe(this);">
 % for data in result['dataset_names']:
@@ -84,6 +86,10 @@
 <div class="${data}">
   % for obj in result['objective_names']:
   <div class="${obj}">
+    <%
+    changed_names = [data + obj + kinds
+                     for kinds in result['kinds']]
+    %>
     % for kind in result['kinds']:
     <div class="${kind}">
       <%
@@ -92,7 +98,14 @@
       % if fig.endswith('.svg'):
       <img src="${fig}"><br/>
       % else:
-      ${fig}
+      <select id="change_scaling" onchange="changeScale(this,${changed_names})">
+        <option value="" disabled selected hidden>Log-scale</option>
+        <option value="loglog">loglog</option>
+        <option value="semilog-y">semilog-y</option>
+      </select>
+      <div id="${data + obj + kind}">
+        ${fig}
+      </div>
       %endif
     </div>
     %endfor
@@ -104,18 +117,38 @@
 <a class="backtotop" title="Back to top" href="#top"><i class="fas fa-level-up-alt"></i></a>
 
 <script type="text/javascript">
-	function showMe(e) {
-		for (var i = 0; i < e.options.length; i++) {
-			opt = e.options[i]
-			var all_obj = document.getElementsByClassName(opt.value);
-			for (var j =0; j< all_obj.length; j++)
-				all_obj[j].style.display = "none";
-		}
-		var class_to_display = e.options[e.selectedIndex].value;
-		var all_obj = document.getElementsByClassName(class_to_display);
-		for (var j =0; j< all_obj.length; j++)
-			all_obj[j].style.display = "block";
+    function showMe(e) {
+		  for (var i = 0; i < e.options.length; i++) {
+		  	opt = e.options[i]
+		  	var all_obj = document.getElementsByClassName(opt.value);
+		  	for (var j = 0; j < all_obj.length; j++)
+		  		all_obj[j].style.display = "none";
+        };
+		  var class_to_display = e.options[e.selectedIndex].value;
+		  var all_obj = document.getElementsByClassName(class_to_display);
+		  for (var j = 0; j < all_obj.length; j++)
+		  	all_obj[j].style.display = "block";
+    }
+
+  function changeScale(e, all_ids) {
+    for (name = 0; name < all_ids.length; name++){
+      container = document.getElementById(all_ids[name]);
+      id_graph = container.getElementsByTagName("div")[1].id;
+      graph = document.getElementById(id_graph);
+      layout = graph.layout;
+      switch (e.value) {
+        case "loglog":
+          layout.xaxis.type = "log";
+          Plotly.relayout(id_graph, layout);
+          break;
+        case "semilog-y":
+          layout.xaxis.type = "linear";
+          Plotly.relayout(id_graph, layout);
+          break;
+        }
+    }
   }
+
 
   $('.toggle').click(function() {
     $(this).find('svg').toggleClass('fa-plus-circle fa-minus-circle');
